@@ -69,6 +69,57 @@ export function obtenerFechasDeCatalogo(nombreEvento) {
 
 
 /**
+ * Extract folder ID from a Google Drive folder URL
+ */
+export function obtenerIdCarpeta(url) {
+  if (!url) return null;
+  // Format 1 & 2: /folders/FOLDER_ID or /folders/FOLDER_ID?usp=...
+  const folderMatch = url.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (folderMatch) return folderMatch[1];
+
+  // Format 3: id=FOLDER_ID
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) return idMatch[1];
+
+  return null;
+}
+
+/**
+ * Check if the URL is a Google Drive folder URL
+ */
+export function esUrlCarpeta(url) {
+  if (!url) return false;
+  return url.includes('/folders/') || (url.includes('drive.google.com') && url.includes('id=') && !url.includes('spreadsheets') && !url.includes('file'));
+}
+
+/**
+ * Fetch the latest modified Excel or Google Sheet metadata from a Drive folder using the Drive API v3
+ */
+export async function obtenerUltimoArchivoDeCarpeta(folderId, apiKey) {
+  if (!apiKey) {
+    throw new Error(
+      'Para descargar desde una carpeta de Google Drive, debes configurar VITE_GOOGLE_API_KEY en tu archivo .env. ' +
+      'De lo contrario, puedes usar un enlace directo a un archivo Excel en VITE_EXCEL_URL.'
+    );
+  }
+
+  const mimeSheets = 'application/vnd.google-apps.spreadsheet';
+  const mimeXlsx = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const query = `'${folderId}' in parents and trashed = false and (mimeType = '${mimeSheets}' or mimeType = '${mimeXlsx}')`;
+  
+  const driveApiUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&orderBy=modifiedTime desc&pageSize=1&fields=files(id,name,mimeType,modifiedTime)&key=${apiKey}`;
+
+  const response = await axios.get(driveApiUrl);
+  const files = response.data.files;
+  
+  if (!files || files.length === 0) {
+    throw new Error('No se encontraron archivos de tipo Excel o Google Sheets en la carpeta de Google Drive especificada.');
+  }
+
+  return files[0];
+}
+
+/**
  * Convert Google Drive share link to direct download link
  */
 function getDirectDownloadUrl(url) {
@@ -91,14 +142,69 @@ function getDirectDownloadUrl(url) {
 }
 
 /**
- * Download Excel file from Google Drive
+ * Download Excel file from Google Drive (supporting folders or direct links)
  */
 export async function descargarExcel() {
+  const appsScriptUrl = import.meta.env.VITE_APPS_SCRIPT_URL;
+  
+  // If Google Apps Script proxy is defined, fetch from it
+  if (appsScriptUrl) {
+    const response = await axios.get(appsScriptUrl, {
+      responseType: 'text',
+      timeout: 30000,
+    });
+    
+    const base64Data = response.data.trim();
+    
+    // Check if it's an error page or HTML response
+    if (!base64Data || base64Data.startsWith('<!DOCTYPE') || base64Data.startsWith('<html') || base64Data.includes('Error')) {
+      throw new Error('La respuesta del script de Google Apps no es válida. Asegúrate de haber publicado la implementación para "Cualquiera" (Anyone) y de haber colocado la URL correcta.');
+    }
+    
+    // Decode Base64 string to ArrayBuffer
+    const binaryString = window.atob(base64Data);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
   const rawUrl = import.meta.env.VITE_EXCEL_URL;
   if (!rawUrl) {
     throw new Error('VITE_EXCEL_URL no está configurada en .env');
   }
 
+  // 1. If it's a Google Drive folder
+  if (esUrlCarpeta(rawUrl)) {
+    const folderId = obtenerIdCarpeta(rawUrl);
+    if (!folderId) {
+      throw new Error('No se pudo extraer el ID de la carpeta desde la URL de Google Drive proporcionada.');
+    }
+
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+    const latestFile = await obtenerUltimoArchivoDeCarpeta(folderId, apiKey);
+    
+    console.log(`Descargando el archivo más reciente: "${latestFile.name}" (ID: ${latestFile.id})`);
+
+    let downloadUrl;
+    if (latestFile.mimeType === 'application/vnd.google-apps.spreadsheet') {
+      // It's a Google Sheet, export as XLSX
+      downloadUrl = `https://docs.google.com/spreadsheets/d/${latestFile.id}/export?format=xlsx`;
+    } else {
+      // It's a binary XLSX file uploaded to Drive, download via API alt=media
+      downloadUrl = `https://www.googleapis.com/drive/v3/files/${latestFile.id}?alt=media&key=${apiKey}`;
+    }
+
+    const response = await axios.get(downloadUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000,
+    });
+    return response.data;
+  }
+
+  // 2. If it's a direct file link (backwards-compatibility)
   const url = getDirectDownloadUrl(rawUrl);
   const response = await axios.get(url, {
     responseType: 'arraybuffer',
