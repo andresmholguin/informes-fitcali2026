@@ -59,6 +59,7 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDemo, setIsDemo] = useState(false);
+  const [fileInfo, setFileInfo] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -75,18 +76,23 @@ export function DataProvider({ children }) {
         // Build metrics directly from pre-normalized demo data
         const metricsResult = buildMetricsFromNormalized(demoData);
         setMetrics(metricsResult);
+        setFileInfo({ name: 'Datos de Demostración', modifiedTime: new Date().toISOString() });
         setIsDemo(true);
         setLoading(false);
         return;
       }
 
-      const buffer = await descargarExcel();
+      const result = await descargarExcel();
+      const buffer = result.buffer || result;
+      const info = result.fileInfo || null;
+
       const allData = parsearExcel(buffer);
       const entradas = filtrarEntradas(allData);
       const metricsResult = generarMetricas(entradas);
 
       setRawData(metricsResult.data);
       setMetrics(metricsResult);
+      setFileInfo(info);
       setIsDemo(false);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -95,6 +101,7 @@ export function DataProvider({ children }) {
       setRawData(demoData);
       const metricsResult = buildMetricsFromNormalized(demoData);
       setMetrics(metricsResult);
+      setFileInfo({ name: 'Datos de Demostración (Error)', modifiedTime: new Date().toISOString() });
       setIsDemo(true);
       setError(err.message);
     } finally {
@@ -107,7 +114,7 @@ export function DataProvider({ children }) {
   }, [fetchData]);
 
   return (
-    <DataContext.Provider value={{ rawData, metrics, loading, error, isDemo, refetch: fetchData }}>
+    <DataContext.Provider value={{ rawData, metrics, loading, error, isDemo, fileInfo, refetch: fetchData }}>
       {children}
     </DataContext.Provider>
   );

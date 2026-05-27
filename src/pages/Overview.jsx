@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Ticket, Wallet, Armchair, Users, Star, Download, Calendar, MapPin, ExternalLink, ArrowRight } from 'lucide-react';
+import { Ticket, Wallet, Armchair, Users, Star, Download, Calendar, MapPin, ExternalLink, ArrowRight, RefreshCw } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { useEventosCatalog } from '@/hooks/useEventosCatalog';
 import KpiCard from '@/components/ui/KpiCard';
@@ -14,7 +14,8 @@ import { formatCurrency, formatNumber, formatPercent } from '@/utils/formatters'
 import { exportToExcel } from '@/utils/exportUtils';
 
 export default function Overview() {
-  const { metrics, loading, isDemo } = useData();
+  const { metrics, loading, isDemo, fileInfo, refetch } = useData();
+  const [refreshing, setRefreshing] = useState(false);
   const catalog = useEventosCatalog();
 
   // Get first 6 unique events for the highlight section
@@ -88,16 +89,52 @@ export default function Overview() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex gap-2"
+          className="flex flex-col items-start md:items-end gap-2"
         >
-          <button onClick={handleExport} className="btn-secondary">
-            <Download size={16} /> Exportar
-          </button>
-          <select className="px-4 py-2 bg-surface text-on-surface border border-outline-variant rounded-lg font-body text-body-sm focus:ring-1 focus:ring-primary">
-            <option>Últimos 30 días</option>
-            <option>Este trimestre</option>
-            <option>Año actual</option>
-          </select>
+          <div className="flex gap-2">
+            <button onClick={handleExport} className="btn-secondary">
+              <Download size={16} /> Exportar
+            </button>
+            <button
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await refetch();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              disabled={refreshing}
+              className="btn-secondary"
+            >
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Actualizando...' : 'Refrescar datos'}
+            </button>
+          </div>
+          
+          {fileInfo && (
+            <span className="text-[11px] font-body text-on-surface-variant/80 bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant/30 select-none">
+              Modificado: {(() => {
+                if (!fileInfo.modifiedTime) return '—';
+                try {
+                  return new Date(fileInfo.modifiedTime).toLocaleString('es-CO', {
+                    timeZone: 'America/Bogota',
+                    year: 'numeric',
+                    month: 'short',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                  });
+                } catch (e) {
+                  return fileInfo.modifiedTime;
+                }
+              })()} (Bogotá UTC-5)
+            </span>
+          )}
         </motion.div>
       </div>
 

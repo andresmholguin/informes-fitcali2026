@@ -154,21 +154,42 @@ export async function descargarExcel() {
       timeout: 30000,
     });
     
-    const base64Data = response.data.trim();
+    const trimmed = response.data.trim();
     
     // Check if it's an error page or HTML response
-    if (!base64Data || base64Data.startsWith('<!DOCTYPE') || base64Data.startsWith('<html') || base64Data.includes('Error')) {
+    if (!trimmed || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.includes('Error')) {
       throw new Error('La respuesta del script de Google Apps no es válida. Asegúrate de haber publicado la implementación para "Cualquiera" (Anyone) y de haber colocado la URL correcta.');
     }
     
-    // Decode Base64 string to ArrayBuffer
+    // Support JSON format with metadata
+    if (trimmed.startsWith('{')) {
+      const parsed = JSON.parse(trimmed);
+      const base64Data = parsed.base64;
+      const fileInfo = parsed.fileInfo;
+      const binaryString = window.atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return {
+        buffer: bytes.buffer,
+        fileInfo: fileInfo || { name: 'Archivo Apps Script', modifiedTime: new Date().toISOString() }
+      };
+    }
+    
+    // Decode Base64 string to ArrayBuffer (fallback)
+    const base64Data = trimmed;
     const binaryString = window.atob(base64Data);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    return bytes.buffer;
+    return {
+      buffer: bytes.buffer,
+      fileInfo: { name: 'Archivo Apps Script', modifiedTime: new Date().toISOString() }
+    };
   }
 
   const rawUrl = import.meta.env.VITE_EXCEL_URL;
@@ -201,17 +222,46 @@ export async function descargarExcel() {
       responseType: 'arraybuffer',
       timeout: 30000,
     });
-    return response.data;
+    
+    return {
+      buffer: response.data,
+      fileInfo: {
+        name: latestFile.name,
+        modifiedTime: latestFile.modifiedTime
+      }
+    };
   }
 
   // 2. If it's a direct file link (backwards-compatibility)
+  let fileInfo = null;
+  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+  if (apiKey) {
+    const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || rawUrl.match(/id=([a-zA-Z0-9_-]+)/);
+    if (match) {
+      try {
+        const fileId = match[1];
+        const driveApiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,modifiedTime&key=${apiKey}`;
+        const metaRes = await axios.get(driveApiUrl);
+        fileInfo = {
+          name: metaRes.data.name,
+          modifiedTime: metaRes.data.modifiedTime
+        };
+      } catch (e) {
+        console.warn('Could not fetch direct file metadata', e);
+      }
+    }
+  }
+
   const url = getDirectDownloadUrl(rawUrl);
   const response = await axios.get(url, {
     responseType: 'arraybuffer',
     timeout: 30000,
   });
 
-  return response.data;
+  return {
+    buffer: response.data,
+    fileInfo: fileInfo || { name: 'Archivo Excel Directo', modifiedTime: new Date().toISOString() }
+  };
 }
 
 /**
