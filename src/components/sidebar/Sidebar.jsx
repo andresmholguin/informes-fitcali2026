@@ -48,7 +48,14 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Logo */}
         <div className="mb-12">
           <div className="flex flex-col items-center gap-2">
-            <img width="211" height="60" src="https://www.colboletos.com/themes/colboletos/assets/img/logo.webp?26" alt="Colboletos - Tu entrada a los mejores eventos" />
+            <img
+              src="https://www.colboletos.com/themes/colboletos/assets/img/logo.webp?26"
+              alt="Colboletos - Tu entrada a los mejores eventos"
+              width={211}
+              height={60}
+              className="w-[211px] h-[60px]"
+            />
+
             <div>
               <h1 className="font-headline font-bold text-primary text-[20px] leading-tight">
                 Informes
