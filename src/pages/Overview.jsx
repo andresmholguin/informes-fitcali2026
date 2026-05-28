@@ -113,7 +113,7 @@ export default function Overview() {
               {refreshing ? 'Actualizando...' : 'Refrescar datos'}
             </button>
           </div>
-          
+
           {fileInfo && (
             <span className="text-[11px] font-body text-on-surface-variant/80 bg-surface-container-low px-2 py-0.5 rounded border border-outline-variant/30 select-none">
               Modificado: {(() => {
@@ -141,7 +141,7 @@ export default function Overview() {
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <KpiCard
-          label="Total boletos vendidos"
+          label="Total boletos emitidos"
           value={formatNumber(m?.totalBoletos || 0)}
           icon={Ticket}
           trend={12.5}
@@ -155,7 +155,7 @@ export default function Overview() {
           delay={1}
         />
         <KpiCard
-          label="Funciones realizadas"
+          label="Funciones vendidas"
           value={formatNumber(m?.totalFunciones || 0)}
           icon={Armchair}
           trendLabel="Esta temporada"
