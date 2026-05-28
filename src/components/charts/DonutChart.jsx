@@ -36,7 +36,6 @@ export default function DonutChart({ data = [], title = 'Ventas por procedencia'
                 paddingAngle={3}
                 dataKey="cantidad"
                 stroke="none"
-                isAnimationActive={false}
               >
                 {data.map((_, i) => (
                   <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />

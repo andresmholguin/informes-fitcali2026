@@ -1,19 +1,17 @@
-import { useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Ticket, Wallet, Armchair, Users, Star, Download, Calendar, MapPin, ExternalLink, ArrowRight, RefreshCw } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { useEventosCatalog } from '@/hooks/useEventosCatalog';
 import KpiCard from '@/components/ui/KpiCard';
+import DonutChart from '@/components/charts/DonutChart';
+import RevenueBarChart from '@/components/charts/RevenueBarChart';
+import DataTable from '@/components/tables/DataTable';
 import { KpiSkeleton, ChartSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
 import GlassCard from '@/components/ui/GlassCard';
 import { formatCurrency, formatNumber, formatPercent } from '@/utils/formatters';
 import { exportToExcel } from '@/utils/exportUtils';
-
-import DataTable from '@/components/tables/DataTable';
-
-const DonutChart = lazy(() => import('@/components/charts/DonutChart'));
-const RevenueBarChart = lazy(() => import('@/components/charts/RevenueBarChart'));
 
 export default function Overview() {
   const { metrics, loading, isDemo, fileInfo, refetch } = useData();
@@ -201,13 +199,9 @@ export default function Overview() {
 
       {/* Bento Grid Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Suspense fallback={<ChartSkeleton />}>
-          <DonutChart data={m?.ventasPorPublico || []} title="Ventas por procedencia de grupos" delay={5} />
-        </Suspense>
+        <DonutChart data={m?.ventasPorPublico || []} title="Ventas por procedencia de grupos" delay={5} />
         <div className="lg:col-span-2">
-          <Suspense fallback={<ChartSkeleton />}>
-            <RevenueBarChart data={m?.tendenciaIngresos || []} delay={6} />
-          </Suspense>
+          <RevenueBarChart data={m?.tendenciaIngresos || []} delay={6} />
         </div>
       </div>
 

@@ -1,13 +1,11 @@
-import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useData } from '@/context/DataContext';
 import KpiCard from '@/components/ui/KpiCard';
+import HorizontalBarChart from '@/components/charts/HorizontalBarChart';
 import GlassCard from '@/components/ui/GlassCard';
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton';
 import { MapPin, Ticket, DollarSign } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-
-const HorizontalBarChart = lazy(() => import('@/components/charts/HorizontalBarChart'));
 
 export default function Salas() {
   const { metrics, loading } = useData();
@@ -40,9 +38,7 @@ export default function Salas() {
         <KpiCard label="Boletos en top sala" value={formatNumber(topSala?.boletos || 0)} icon={Ticket} delay={2} />
       </div>
 
-      <Suspense fallback={<ChartSkeleton />}>
-        <HorizontalBarChart data={salas} title="Ranking de Salas por Ingresos" nameKey="sala" delay={3} />
-      </Suspense>
+      <HorizontalBarChart data={salas} title="Ranking de Salas por Ingresos" nameKey="sala" delay={3} />
 
       {/* Detailed list */}
       <GlassCard className="overflow-hidden" delay={4}>

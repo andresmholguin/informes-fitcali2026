@@ -49,7 +49,7 @@ export default function Sidebar({ isOpen, onClose }) {
         <div className="mb-12">
           <div className="flex flex-col items-center gap-2">
             <img
-              src="/logo.webp"
+              src="https://www.colboletos.com/themes/colboletos/assets/img/logo.webp?26"
               alt="Colboletos - Tu entrada a los mejores eventos"
               width={211}
               height={60}

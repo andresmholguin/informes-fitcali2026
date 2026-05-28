@@ -63,7 +63,6 @@ export default function RevenueBarChart({ data = [], title = 'Tendencia de Ingre
               fill="url(#barGradient)"
               radius={[4, 4, 0, 0]}
               maxBarSize={48}
-              isAnimationActive={false}
             />
           </RechartsBarChart>
         </ResponsiveContainer>
