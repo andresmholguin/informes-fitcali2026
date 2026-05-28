@@ -50,6 +50,7 @@ export default function AreaChartComponent({ data = [], title, dataKey = 'ingres
               stroke={color}
               strokeWidth={2}
               fill={`url(#areaGrad-${dataKey})`}
+              isAnimationActive={false}
             />
           </RechartsAreaChart>
         </ResponsiveContainer>

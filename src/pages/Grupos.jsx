@@ -1,11 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useData } from '@/context/DataContext';
 import KpiCard from '@/components/ui/KpiCard';
-import HorizontalBarChart from '@/components/charts/HorizontalBarChart';
 import GlassCard from '@/components/ui/GlassCard';
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton';
 import { Users, Trophy, Star } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+
+const HorizontalBarChart = lazy(() => import('@/components/charts/HorizontalBarChart'));
 
 export default function Grupos() {
   const { metrics, loading } = useData();
@@ -38,7 +40,9 @@ export default function Grupos() {
         <KpiCard label="Ingresos top grupo" value={formatCurrency(topGrupo?.ingresos || 0)} icon={Star} delay={2} />
       </div>
 
-      <HorizontalBarChart data={grupos} title="Ranking de Grupos por Ingresos" nameKey="grupo" delay={3} />
+      <Suspense fallback={<ChartSkeleton />}>
+        <HorizontalBarChart data={grupos} title="Ranking de Grupos por Ingresos" nameKey="grupo" delay={3} />
+      </Suspense>
 
       <GlassCard className="overflow-hidden" delay={4}>
         <div className="p-6 border-b border-outline-variant bg-surface-container-lowest">

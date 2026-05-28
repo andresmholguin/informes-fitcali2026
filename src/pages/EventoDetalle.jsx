@@ -1,16 +1,19 @@
+import { lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Ticket, Wallet, Calendar, MapPin, Users, ExternalLink, Clock } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { useEventosCatalog, findCatalogEvent } from '@/hooks/useEventosCatalog';
 import KpiCard from '@/components/ui/KpiCard';
-import AreaChartComponent from '@/components/charts/AreaChartComponent';
-import DonutChart from '@/components/charts/DonutChart';
 import GlassCard from '@/components/ui/GlassCard';
 import EmptyState from '@/components/ui/EmptyState';
 import Badge from '@/components/ui/Badge';
+import { ChartSkeleton } from '@/components/ui/Skeleton';
 import { formatCurrency, formatNumber, formatDate } from '@/utils/formatters';
 import { useMemo } from 'react';
+
+const AreaChartComponent = lazy(() => import('@/components/charts/AreaChartComponent'));
+const DonutChart = lazy(() => import('@/components/charts/DonutChart'));
 
 export default function EventoDetalle() {
   const { id } = useParams();
@@ -183,9 +186,13 @@ export default function EventoDetalle() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DonutChart data={localitiesChartData} title="Ventas por localidad" centerLabel="LOCALIDAD" delay={4} />
+        <Suspense fallback={<ChartSkeleton />}>
+          <DonutChart data={localitiesChartData} title="Ventas por localidad" centerLabel="LOCALIDAD" delay={4} />
+        </Suspense>
         <div className="lg:col-span-2">
-          <AreaChartComponent data={dailySales} title="Ventas por fecha" delay={5} />
+          <Suspense fallback={<ChartSkeleton />}>
+            <AreaChartComponent data={dailySales} title="Ventas por fecha" delay={5} />
+          </Suspense>
         </div>
       </div>
 

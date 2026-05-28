@@ -1,13 +1,15 @@
+import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useData } from '@/context/DataContext';
 import GlassCard from '@/components/ui/GlassCard';
-import HorizontalBarChart from '@/components/charts/HorizontalBarChart';
-import AreaChartComponent from '@/components/charts/AreaChartComponent';
-import DonutChart from '@/components/charts/DonutChart';
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton';
 import KpiCard from '@/components/ui/KpiCard';
 import { CreditCard, TrendingUp, ShoppingCart, Smartphone } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+
+const HorizontalBarChart = lazy(() => import('@/components/charts/HorizontalBarChart'));
+const AreaChartComponent = lazy(() => import('@/components/charts/AreaChartComponent'));
+const DonutChart = lazy(() => import('@/components/charts/DonutChart'));
 
 export default function Ventas() {
   const { metrics, loading } = useData();
@@ -63,29 +65,37 @@ export default function Ventas() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HorizontalBarChart
-          data={m?.ventasPorCanal || []}
-          title="Ventas por Canal"
-          nameKey="canal"
-          delay={3}
-        />
-        <HorizontalBarChart
-          data={m?.ventasPorVendedor || []}
-          title="Ventas por Vendedor"
-          nameKey="vendedor"
-          delay={4}
-        />
+        <Suspense fallback={<ChartSkeleton />}>
+          <HorizontalBarChart
+            data={m?.ventasPorCanal || []}
+            title="Ventas por Canal"
+            nameKey="canal"
+            delay={3}
+          />
+        </Suspense>
+        <Suspense fallback={<ChartSkeleton />}>
+          <HorizontalBarChart
+            data={m?.ventasPorVendedor || []}
+            title="Ventas por Vendedor"
+            nameKey="vendedor"
+            delay={4}
+          />
+        </Suspense>
       </div>
 
       {/* Audience + Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DonutChart data={m?.ventasPorPublico || []} delay={5} />
+        <Suspense fallback={<ChartSkeleton />}>
+          <DonutChart data={m?.ventasPorPublico || []} delay={5} />
+        </Suspense>
         <div className="lg:col-span-2">
-          <AreaChartComponent
-            data={m?.tendenciaIngresos || []}
-            title="Tendencia de Ingresos"
-            delay={6}
-          />
+          <Suspense fallback={<ChartSkeleton />}>
+            <AreaChartComponent
+              data={m?.tendenciaIngresos || []}
+              title="Tendencia de Ingresos"
+              delay={6}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

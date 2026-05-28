@@ -51,7 +51,7 @@ export default function HorizontalBarChart({ data = [], title, nameKey = 'name',
               tick={{ fontSize: 12, fill: '#1a1b26' }}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,48,145,0.05)' }} />
-            <Bar dataKey={valueKey} radius={[0, 4, 4, 0]} maxBarSize={24}>
+            <Bar dataKey={valueKey} radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive={false}>
               {chartData.map((_, i) => (
                 <Cell key={i} fill={CHART_PALETTE[i % CHART_PALETTE.length]} />
               ))}

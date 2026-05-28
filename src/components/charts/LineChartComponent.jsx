@@ -45,6 +45,7 @@ export default function LineChartComponent({ data = [], title, delay = 0 }) {
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4, fill: '#003091' }}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
@@ -55,6 +56,7 @@ export default function LineChartComponent({ data = [], title, delay = 0 }) {
               dot={false}
               activeDot={{ r: 4, fill: '#006a68' }}
               yAxisId="right"
+              isAnimationActive={false}
             />
             <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#444557' }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
           </RechartsLineChart>

@@ -7,12 +7,14 @@ import {
 } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { useEventosCatalog, useCategoriasFestival, findCatalogEvent } from '@/hooks/useEventosCatalog';
+import { lazy, Suspense } from 'react';
 import GlassCard from '@/components/ui/GlassCard';
 import Badge from '@/components/ui/Badge';
-import HorizontalBarChart from '@/components/charts/HorizontalBarChart';
-import DataTable from '@/components/tables/DataTable';
 import { ChartSkeleton, TableSkeleton } from '@/components/ui/Skeleton';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+
+const HorizontalBarChart = lazy(() => import('@/components/charts/HorizontalBarChart'));
+const DataTable = lazy(() => import('@/components/tables/DataTable'));
 
 const categoryColors = {
   'Arte queer': 'bg-[#9333ea]/10 text-[#9333ea]',
@@ -160,17 +162,21 @@ export default function Eventos() {
       {/* Data View (original table) */}
       {viewMode === 'data' && (
         <>
-          <HorizontalBarChart
-            data={metrics?.ventasPorEvento?.slice(0, 10) || []}
-            title="Ranking de Eventos por Ingresos"
-            nameKey="evento"
-            delay={0}
-          />
-          <DataTable
-            data={metrics?.eventos || []}
-            title="Rendimiento de Ventas por Evento"
-            showViewAll={false}
-          />
+          <Suspense fallback={<ChartSkeleton />}>
+            <HorizontalBarChart
+              data={metrics?.ventasPorEvento?.slice(0, 10) || []}
+              title="Ranking de Eventos por Ingresos"
+              nameKey="evento"
+              delay={0}
+            />
+          </Suspense>
+          <Suspense fallback={<TableSkeleton />}>
+            <DataTable
+              data={metrics?.eventos || []}
+              title="Rendimiento de Ventas por Evento"
+              showViewAll={false}
+            />
+          </Suspense>
         </>
       )}
 
