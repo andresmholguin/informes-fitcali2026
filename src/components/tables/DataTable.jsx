@@ -118,6 +118,12 @@ export default function DataTable({ data = [], title = 'Rendimiento de Eventos',
               <th className="p-4 font-semibold text-right cursor-pointer" onClick={() => toggleSort('boletos')}>
                 <span className="flex items-center justify-end gap-1">Boletos <ArrowUpDown size={12} /></span>
               </th>
+              <th className="p-4 font-semibold text-right cursor-pointer" onClick={() => toggleSort('aforo_venta')}>
+                <span className="flex items-center justify-end gap-1">Aforo <ArrowUpDown size={12} /></span>
+              </th>
+              <th className="p-4 font-semibold text-right cursor-pointer" onClick={() => toggleSort('porcentaje_ocupacion')}>
+                <span className="flex items-center justify-end gap-1">% Ocup. <ArrowUpDown size={12} /></span>
+              </th>
               <th className="p-4 font-semibold text-right cursor-pointer" onClick={() => toggleSort('ingresos')}>
                 <span className="flex items-center justify-end gap-1">Ingresos <ArrowUpDown size={12} /></span>
               </th>
@@ -152,6 +158,12 @@ export default function DataTable({ data = [], title = 'Rendimiento de Eventos',
                   </td>
                   <td className="p-4 text-right font-body text-body-sm">
                     {formatNumber(row.boletos)}
+                  </td>
+                  <td className="p-4 text-right font-body text-body-sm text-on-surface-variant">
+                    {row.aforo_venta > 0 ? formatNumber(row.aforo_venta) : '-'}
+                  </td>
+                  <td className="p-4 text-right font-body text-body-sm font-medium text-on-surface">
+                    {row.aforo_venta > 0 ? `${row.porcentaje_ocupacion}%` : '-'}
                   </td>
                   <td className="p-4 text-right font-body text-body-sm font-medium text-on-surface">
                     {formatCurrency(row.ingresos)}

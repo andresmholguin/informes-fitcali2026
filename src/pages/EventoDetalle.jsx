@@ -174,11 +174,12 @@ export default function EventoDetalle() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <KpiCard label="Boletos vendidos" value={formatNumber(evento.boletos)} icon={Ticket} delay={0} />
         <KpiCard label="Ingresos" value={formatCurrency(evento.ingresos)} icon={Wallet} delay={1} />
-        <KpiCard label="Funciones programadas" value={formatNumber(allFunctions.length || evento.fechas?.length || 0)} icon={Calendar} delay={2} />
-        <KpiCard label="Ticket promedio" value={formatCurrency(evento.boletos > 0 ? evento.ingresos / evento.boletos : 0)} icon={Users} delay={3} />
+        <KpiCard label="Aforo de venta" value={evento.aforo_venta > 0 ? formatNumber(evento.aforo_venta) : 'Sin definir'} icon={Calendar} delay={2} />
+        <KpiCard label="Ocupación" value={evento.aforo_venta > 0 ? `${evento.porcentaje_ocupacion}%` : '0%'} icon={Users} delay={3} subtitle={evento.estado === 'completed' ? 'AGOTADO' : 'En Venta'} accentColor={evento.estado === 'completed' ? 'success' : 'primary'} />
+        <KpiCard label="Cortesías" value={formatNumber(evento.cortesias || 0)} icon={Users} delay={4} />
       </div>
 
       {/* Charts */}

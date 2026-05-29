@@ -18,6 +18,8 @@ function flattenEventos() {
         grupo: ev.grupo,
         imgUrl: ev.imgUrl,
         urlEvent: ev.urlEvent,
+        aforo_venta: ev.aforo_venta || 0,
+        cortesias: ev.cortesias || 0,
       });
     });
   });

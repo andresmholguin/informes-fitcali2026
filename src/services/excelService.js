@@ -13,17 +13,106 @@ Object.values(catalogEventos).forEach(lista => {
 });
 
 /**
+ * Clean and normalize event names for robust matching (removes fitcali 2026/20206, slashes, extra spaces)
+ */
+function cleanNameForMatching(name) {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/fitcali\s*2020?6/gi, '') // removes "fitcali 2026" or "fitcali 20206"
+    .replace(/\//g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Find catalog event matching name and possibly date/time
+ */
+export function encontrarEventoCatalogo(nombreEvento, fechaEvento) {
+  if (!nombreEvento) return null;
+  const lowerNombre = nombreEvento.toLowerCase().trim();
+  const cleanedExcel = cleanNameForMatching(nombreEvento);
+  
+  // 1. Find candidates using robust normalized matching
+  const candidates = flatCatalog.filter(ev => {
+    const cleanedCatalog = cleanNameForMatching(ev.nombre_evento);
+    return cleanedCatalog === cleanedExcel || cleanedExcel.includes(cleanedCatalog) || cleanedCatalog.includes(cleanedExcel);
+  });
+  
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+  
+  // 2. Try to match by date/time
+  if (fechaEvento) {
+    const lowerFecha = fechaEvento.toLowerCase().trim();
+    
+    // Exact or partial string match
+    let match = candidates.find(c => {
+      const catFecha = c.fecha_hora_evento.toLowerCase().trim();
+      return catFecha === lowerFecha || lowerFecha.includes(catFecha) || catFecha.includes(lowerFecha);
+    });
+    if (match) return match;
+    
+    // Smart date matching (e.g. "4 de junio" vs "4/06/2026" or "04-jun")
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    match = candidates.find(c => {
+      const catFecha = c.fecha_hora_evento.toLowerCase().trim();
+      
+      const catDayMatch = catFecha.match(/(\d+)\s+de\s+(\w+)/);
+      if (catDayMatch) {
+        const catDay = catDayMatch[1];
+        const catMonthName = catDayMatch[2];
+        const catMonthIdx = months.indexOf(catMonthName) + 1; // 1-indexed
+        
+        const dayRegexStr = `(?:^|\\D)0?${catDay}(?:$|\\D)`;
+        const dayRegex = new RegExp(dayRegexStr);
+        if (dayRegex.test(lowerFecha)) {
+          // Check month
+          if (lowerFecha.includes(catMonthName) || 
+              lowerFecha.includes(catMonthName.substring(0, 3)) ||
+              lowerFecha.includes(`/${catMonthIdx}/`) ||
+              lowerFecha.includes(`-0?${catMonthIdx}-`) ||
+              lowerFecha.includes(`/0?${catMonthIdx}/`) ||
+              lowerFecha.endsWith(`/${catMonthIdx}`) ||
+              lowerFecha.endsWith(`/0?${catMonthIdx}`)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+    if (match) return match;
+  }
+  
+  // 3. Fallback: prioritize exact name match if date didn't match
+  const exactNameMatch = candidates.find(c => c.nombre_evento.toLowerCase().trim() === lowerNombre);
+  if (exactNameMatch) return exactNameMatch;
+  
+  // If one candidate starts with "inauguracion" and the Excel name doesn't contain "inauguracion", prefer the non-inauguration one
+  const isInauguracionExcel = lowerNombre.includes('inauguracion') || lowerNombre.includes('inauguración');
+  if (!isInauguracionExcel) {
+    const nonInauguracion = candidates.find(c => !c.nombre_evento.toLowerCase().includes('inauguracion') && !c.nombre_evento.toLowerCase().includes('inauguración'));
+    if (nonInauguracion) return nonInauguracion;
+  } else {
+    const inauguracion = candidates.find(c => c.nombre_evento.toLowerCase().includes('inauguracion') || c.nombre_evento.toLowerCase().includes('inauguración'));
+    if (inauguracion) return inauguracion;
+  }
+
+  return candidates[0];
+}
+
+/**
  * Find the group for a given event name and spectacle/date from the catalog
  */
 export function obtenerGrupoTeatral(nombreEvento, espectaculoRow) {
   if (!nombreEvento) return 'Sin grupo';
   
-  const lowerNombre = nombreEvento.toLowerCase().trim();
+  const cleanedExcel = cleanNameForMatching(nombreEvento);
   
   // Find matching event(s) in catalog
   const candidates = flatCatalog.filter(ev => {
-    const catalogName = ev.nombre_evento.toLowerCase().trim();
-    return catalogName === lowerNombre || lowerNombre.includes(catalogName) || catalogName.includes(lowerNombre);
+    const cleanedCatalog = cleanNameForMatching(ev.nombre_evento);
+    return cleanedCatalog === cleanedExcel || cleanedExcel.includes(cleanedCatalog) || cleanedCatalog.includes(cleanedExcel);
   });
   
   if (candidates.length > 0) {
@@ -56,10 +145,10 @@ export function obtenerGrupoTeatral(nombreEvento, espectaculoRow) {
  */
 export function obtenerFechasDeCatalogo(nombreEvento) {
   if (!nombreEvento) return [];
-  const lowerNombre = nombreEvento.toLowerCase().trim();
+  const cleanedExcel = cleanNameForMatching(nombreEvento);
   const matches = flatCatalog.filter(ev => {
-    const catalogName = ev.nombre_evento.toLowerCase().trim();
-    return catalogName === lowerNombre || lowerNombre.includes(catalogName) || catalogName.includes(lowerNombre);
+    const cleanedCatalog = cleanNameForMatching(ev.nombre_evento);
+    return cleanedCatalog === cleanedExcel || cleanedExcel.includes(cleanedCatalog) || cleanedCatalog.includes(cleanedExcel);
   });
   if (matches.length > 0) {
     return [...new Set(matches.map(m => m.fecha_hora_evento))];
@@ -451,9 +540,21 @@ export function generarMetricas(rawEntradas) {
   // Best-selling event
   const eventoMasVendido = ventasPorEvento[0] || null;
 
-  // Occupancy average (approximate: boletos per unique event-date)
+  // Calculate average occupancy based on actual event capacity from catalog
+  let totalAforoVentaCalculado = 0;
+  ventasPorEvento.forEach(e => {
+    const catEv = encontrarEventoCatalogo(e.evento, e.primeraFecha);
+    if (catEv && catEv.aforo_venta) {
+      totalAforoVentaCalculado += catEv.aforo_venta;
+    } else {
+      totalAforoVentaCalculado += 100; // fallback if no catalog match
+    }
+  });
+
+  const ocupacionPromedio = totalAforoVentaCalculado > 0 
+    ? Math.round((totalBoletos / totalAforoVentaCalculado) * 100) 
+    : 0;
   const totalFunciones = ventasPorEvento.reduce((sum, e) => sum + e.fechas.length, 0) || 1;
-  const ocupacionPromedio = Math.round((totalBoletos / (totalFunciones * 100)) * 100); // Approx percentage
 
   // Sales by audience type
   const publicoMap = { Local: 0, Nacional: 0, Internacional: 0 };
@@ -530,13 +631,25 @@ export function generarMetricas(rawEntradas) {
   const tendenciaIngresos = ventasPorFecha;
 
   // Detailed events list for table
-  const eventos = ventasPorEvento.map((e, i) => ({
-    id: i + 1,
-    ...e,
-    estado: e.estados.length > 0
-      ? (e.estados.includes('Aprobada') || e.estados.includes('Aprobado') ? 'active' : 'completed')
-      : 'active',
-  }));
+  const eventos = ventasPorEvento.map((e, i) => {
+    const catEv = encontrarEventoCatalogo(e.evento, e.primeraFecha);
+    const aforo_venta = catEv ? catEv.aforo_venta : 0;
+    const cortesias = catEv ? catEv.cortesias : 0;
+    const aforo_total = aforo_venta + cortesias;
+    
+    // Status is 'completed' (Agotado) if boletos >= aforo_venta (and aforo_venta > 0)
+    const agotado = aforo_venta > 0 && e.boletos >= aforo_venta;
+    
+    return {
+      id: i + 1,
+      ...e,
+      aforo_venta,
+      cortesias,
+      aforo_total,
+      porcentaje_ocupacion: aforo_venta > 0 ? Math.min(Math.round((e.boletos / aforo_venta) * 100), 100) : 0,
+      estado: agotado ? 'completed' : 'active'
+    };
+  });
 
   return {
     data,
